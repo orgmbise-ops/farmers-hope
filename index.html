@@ -3,38 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Page Title</title>
+    <title>Shamba Smart Agricultural Application</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <script>
-        const geminiApiKey = 'AIzaSyAmH_UWayND_cd-Q5-g_tZ1_HFYVxNiLIU';
-
-        function sendAI() {
-            // Call Google Generative AI endpoint instead of Anthropic
-            fetch('https://google-generative-ai-endpoint.com/ai', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${geminiApiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({input: 'your input here'})
-            });
-        }
-
-        function analyzeImage() {
-            // Call Google Generative AI endpoint instead of Anthropic
-            fetch('https://google-generative-ai-endpoint.com/analyze', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${geminiApiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({image: 'your image here'})
-            });
-        }
-    </script>
-    <p>Weka API key yako ya Google Gemini hapa…</p>
-    <p>Refer to documentation at aistudio.google.com for further information.</p>
-    <p>All messages and helper texts have been updated to reference Google Gemini instead of Anthropic Claude.</p>
+    <header>
+        <h1>Welcome to Shamba Smart</h1>
+        <nav>
+            <ul>
+                <li><a href="login.html">Login</a></li>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="monitor.html">Monitor</a></li>
+                <li><a href="marketplace.html">Marketplace</a></li>
+                <li><a href="ai_advisor.html">AI Advisor</a></li>
+                <li><a href="disease_detection.html">Disease Detection</a></li>
+                <li><a href="community.html">Community</a></li>
+                <li><a href="profile.html">Profile</a></li>
+                <li><a href="history.html">History</a></li>
+                <li><a href="device_setup.html">Device Setup</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="login">
+            <!-- Login Page Structure -->
+        </section>
+        <section id="home">
+            <!-- Home Page Structure -->
+        </section>
+        <section id="monitor">
+            <!-- Monitor Page Structure -->
+        </section>
+        <section id="marketplace">
+            <!-- Marketplace Page Structure -->
+        </section>
+        <section id="ai_advisor">
+            <!-- AI Advisor Page Structure -->
+        </section>
+        <section id="disease_detection">
+            <!-- Disease Detection Page Structure -->
+        </section>
+        <section id="community">
+            <!-- Community Page Structure -->
+        </section>
+        <section id="profile">
+            <!-- Profile Page Structure -->
+        </section>
+        <section id="history">
+            <!-- History Page Structure -->
+        </section>
+        <section id="device_setup">
+            <!-- Device Setup Page Structure -->
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2026 Shamba Smart. All rights reserved.</p>
+    </footer>
+    <script src="script.js"></script>
 </body>
 </html>
