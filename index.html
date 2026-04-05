@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://js.puter.com/v2/"></script>
+   <script src="https://js.puter.com/v2/" onerror="console.warn('Puter failed')"></script>
 
     <style>
         :root {
@@ -1294,11 +1294,33 @@ void loop() {
 
 <script>
 // ─────────────────────────────────────────────
-//  SUPABASE CONFIG — Replace with your project values
+//  SUPABASE CONFIG
 // ─────────────────────────────────────────────
 const SUPABASE_URL      = 'https://klhrdnpvkddftmfzmwxt.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_lCJvWV1b_tEBFyCy1qV5FA_mnambYwM';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb;
+try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) {
+    console.warn('Supabase failed to init:', e);
+    // Create a dummy sb object so the app still runs in offline/guest mode
+    sb = {
+        auth: {
+            signInWithPassword: async () => ({ data: null, error: { message: 'Offline mode' } }),
+            signUp:             async () => ({ data: null, error: { message: 'Offline mode' } }),
+            signOut:            async () => {},
+            getSession:         async () => ({ data: { session: null } }),
+            onAuthStateChange:  () => ({ data: { subscription: { unsubscribe: ()=>{} } } }),
+        },
+        from: () => ({
+            select:  () => ({ eq: () => ({ single: async ()=>({data:null,error:null}), limit: async ()=>({data:[],error:null}), order: ()=>({ limit: async ()=>({data:[],error:null}) }) }) }),
+            insert:  async () => ({ error: null }),
+            upsert:  async () => ({ error: null }),
+            delete:  () => ({ eq: () => ({ eq: async ()=>({error:null}) }) }),
+            update:  () => ({ eq: async ()=>({error:null}) }),
+        }),
+    };
+}
 
 // ─────────────────────────────────────────────
 //  STATE
@@ -1411,18 +1433,21 @@ async function login() {
     if (!email || !pw) { showToast('Ingiza barua pepe na nenosiri'); return; }
 
     showToast('Inaingia…');
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
-    if (error) {
-        // Try signup if user does not exist
-        if (error.message.toLowerCase().includes('invalid login')) {
-            showToast('⚠️ Barua pepe au nenosiri si sahihi');
-        } else {
-            showToast('⚠️ ' + error.message);
+    try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+        if (error) {
+            if (error.message.toLowerCase().includes('invalid login') || error.message.toLowerCase().includes('invalid email')) {
+                showToast('⚠️ Barua pepe au nenosiri si sahihi');
+            } else {
+                showToast('⚠️ ' + error.message);
+            }
+            return;
         }
-        return;
+        currentUser = data.user;
+        await afterLogin();
+    } catch(e) {
+        showToast('⚠️ Tatizo la mtandao. Jaribu Demo mode.');
     }
-    currentUser = data.user;
-    await afterLogin();
 }
 
 async function signup() {
@@ -1432,20 +1457,23 @@ async function signup() {
     if (pw.length < 6)  { showToast('Nenosiri liwe na herufi 6+'); return; }
 
     showToast('Inasajili…');
-    const { data, error } = await sb.auth.signUp({ email, password: pw });
-    if (error) { showToast('⚠️ ' + error.message); return; }
-    currentUser = data.user;
+    try {
+        const { data, error } = await sb.auth.signUp({ email, password: pw });
+        if (error) { showToast('⚠️ ' + error.message); return; }
+        currentUser = data.user;
 
-    // Create farmer profile row
-    await sb.from('farmers').upsert({
-        user_id: currentUser.id,
-        first_name: 'Mkulima',
-        last_name: 'Mpya',
-        email: currentUser.email,
-    });
+        await sb.from('farmers').upsert({
+            user_id: currentUser.id,
+            first_name: 'Mkulima',
+            last_name: 'Mpya',
+            email: currentUser.email,
+        });
 
-    showToast('✅ Akaunti imefunguliwa!');
-    await afterLogin();
+        showToast('✅ Akaunti imefunguliwa!');
+        await afterLogin();
+    } catch(e) {
+        showToast('⚠️ Tatizo la mtandao. Jaribu Demo mode.');
+    }
 }
 
 async function afterLogin() {
@@ -1454,24 +1482,30 @@ async function afterLogin() {
     document.getElementById('main-app').classList.add('active');
     document.getElementById('guest-banner').style.display = 'none';
 
-    // Load profile info
-    const { data: farmer } = await sb.from('farmers')
-        .select('*').eq('user_id', currentUser.id).single();
+    try {
+        // Load profile info
+        const { data: farmer } = await sb.from('farmers')
+            .select('*').eq('user_id', currentUser.id).single();
 
-    const name = farmer
-        ? `${farmer.first_name} ${farmer.last_name}`
-        : currentUser.email;
-    document.getElementById('profile-name').textContent  = name;
-    document.getElementById('profile-email').textContent = currentUser.email;
-    if (farmer && farmer.farm_name) {
-        const tag = document.getElementById('profile-farm-tag');
-        if (tag) tag.textContent = `🌾 ${farmer.farm_name}${farmer.region ? ' · ' + farmer.region : ''}`;
+        const name = farmer
+            ? `${farmer.first_name} ${farmer.last_name}`
+            : currentUser.email;
+        document.getElementById('profile-name').textContent  = name;
+        document.getElementById('profile-email').textContent = currentUser.email;
+        if (farmer && farmer.farm_name) {
+            const tag = document.getElementById('profile-farm-tag');
+            if (tag) tag.textContent = `🌾 ${farmer.farm_name}${farmer.region ? ' · ' + farmer.region : ''}`;
+        }
+
+        // Load device id if available
+        const { data: devices } = await sb.from('devices')
+            .select('device_id').eq('user_id', currentUser.id).limit(1);
+        if (devices && devices.length) currentDeviceId = devices[0].device_id;
+    } catch(e) {
+        console.warn('Profile load error:', e);
+        document.getElementById('profile-name').textContent  = currentUser.email || 'Mkulima';
+        document.getElementById('profile-email').textContent = currentUser.email || '';
     }
-
-    // Load device id if available
-    const { data: devices } = await sb.from('devices')
-        .select('device_id').eq('user_id', currentUser.id).limit(1);
-    if (devices && devices.length) currentDeviceId = devices[0].device_id;
 
     updateMonitorBanner();
     initApp();
@@ -2680,6 +2714,8 @@ function initApp() {
 
 // Keep initDemo as alias for backward compat
 function initDemo() { initApp(); }
+function initDemo() { initApp(); }
 
-w
+</script>
+</body>
 </html>
