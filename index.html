@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="sw">
 <head>
     <meta charset="UTF-8">
@@ -1226,7 +1226,7 @@ void loop() {
         </select>
       </div>
       <button onclick="saveProfileSetup()" class="btn btn-green" style="margin-top:6px;"><i class="bi bi-check2-circle"></i> Hifadhi na Endelea</button>
-      <button onclick="closeModal('modal-setup')" class="btn btn-outline" style="margin-top:10px;font-size:0.85rem;">Ruka kwa sasa</button>
+      <button onclick="skipProfileSetup()" class="btn btn-outline" style="margin-top:10px;font-size:0.85rem;">Ruka kwa sasa</button>
     </div>
   </div>
 </div>
@@ -1521,9 +1521,12 @@ async function afterLogin() {
     const { data: farmer } = await sb.from('farmers')
         .select('*').eq('user_id', currentUser.id).single();
 
-    const isNewUser = !farmer || !farmer.first_name || farmer.first_name === 'Mkulima';
+    // Only show setup if user has never saved real name AND hasn't dismissed it before
+    const setupDone = localStorage.getItem('shambaSetupDone_' + currentUser.id);
+    const hasRealName = farmer && farmer.first_name && farmer.first_name !== 'Mkulima' && farmer.first_name !== '';
+    const isNewUser = !hasRealName && !setupDone;
 
-    const displayName = (farmer && farmer.first_name && farmer.first_name !== 'Mkulima')
+    const displayName = hasRealName
         ? (farmer.first_name + ' ' + (farmer.last_name || '')).trim()
         : maskEmail(currentUser.email);
     document.getElementById('profile-name').textContent  = displayName;
@@ -1561,11 +1564,34 @@ function startGuestMode() {
 
 async function logout() {
     clearInterval(sensorInterval);
-    sensorInterval = null;
-    sensorChart    = null;
+    if (realDataInterval) clearInterval(realDataInterval);
+    sensorInterval    = null;
+    realDataInterval  = null;
+    sensorChart       = null;
+    currentUser       = null;
+    isGuest           = false;
+    currentDeviceId   = 'device-001';
+    pumpOn            = false;
+
     if (!isGuest) await sb.auth.signOut();
-    localStorage.removeItem('shambaApiKey'); // legacy cleanup
-    location.reload();
+
+    // Reset UI back to login screen without wiping localStorage
+    // (avatar, setup flags, news cache all preserved for next login)
+    document.getElementById('main-app').classList.remove('active');
+    document.getElementById('login-screen').classList.add('active');
+    document.getElementById('email').value    = '';
+    document.getElementById('password').value = '';
+
+    // Reset profile UI
+    document.getElementById('profile-name').textContent  = 'Mgeni / Guest';
+    document.getElementById('profile-email').textContent = 'Demo Mode';
+    document.getElementById('profile-avatar-icon').innerHTML = '\uD83D\uDC68\u200D\uD83C\uDF3E';
+    var wrap = document.getElementById('profile-user-id-wrap');
+    if (wrap) wrap.style.display = 'none';
+    var tag = document.getElementById('profile-farm-tag');
+    if (tag) tag.textContent = '';
+
+    showToast('\uD83D\uDC4B Umetoka. Karibu tena!');
 }
 
 // ─────────────────────────────────────────────
@@ -1927,6 +1953,12 @@ function openProfileSetup() {
     if (m) m.classList.add('open');
 }
 
+function skipProfileSetup() {
+    // Mark as done so it never auto-opens again (user can still edit from profile page)
+    if (currentUser) localStorage.setItem('shambaSetupDone_' + currentUser.id, '1');
+    closeModal('modal-setup');
+}
+
 async function saveProfileSetup() {
     if (isGuest || !currentUser) return;
     const first    = (document.getElementById('setup-firstname').value || '').trim();
@@ -1973,6 +2005,8 @@ async function saveProfileSetup() {
     const ph = document.getElementById('acc-phone');     if (ph) ph.value = phone;
 
     showToast('\u2705 Wasifu wako umehifadhiwa! Karibu Shamba Smart!');
+    // Mark setup as permanently done for this user
+    localStorage.setItem('shambaSetupDone_' + currentUser.id, '1');
     closeModal('modal-setup');
 }
 
@@ -1997,8 +2031,8 @@ function uploadAvatar(event) {
             canvas.height = img.height * ratio;
             canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
             const resized = canvas.toDataURL('image/jpeg', 0.82);
-            // Save
-            const key = 'shambaAvatar' + (currentUser ? '_' + currentUser.id : '');
+            // Save with consistent key format
+            const key = 'shambaAvatar_' + (currentUser ? currentUser.id : 'guest');
             localStorage.setItem(key, resized);
             applyAvatar(resized);
             showToast('\u2705 Picha ya wasifu imehifadhiwa!');
@@ -2886,6 +2920,28 @@ function initApp() {
 // Keep initDemo as alias for backward compat
 function initDemo() { initApp(); }
 
+// ─────────────────────────────────────────────
+//  SESSION RESTORE — auto-login on page load
+// ─────────────────────────────────────────────
+// Listen for auth state changes (handles session restore after reload/revisit)
+sb.auth.onAuthStateChange(async function(event, session) {
+    if (event === 'SIGNED_IN' && session && !currentUser) {
+        currentUser = session.user;
+        await afterLogin();
+    }
+});
+
+// On first load, check if there's already an active session
+(async function() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+        currentUser = session.user;
+        await afterLogin();
+    }
+    // If no session, login screen is already shown by default
+})();
+
 </script>
 </body>
 </html>
+
