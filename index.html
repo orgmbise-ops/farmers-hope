@@ -863,7 +863,7 @@
                 <!-- User ID shown on profile hero -->
                 <div id="profile-user-id-wrap" style="display:none;margin-top:10px;">
                     <div style="font-size:0.62rem;opacity:.7;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">User ID (kwa ESP32)</div>
-                    <div id="profile-user-id-text" onclick="copyUserId()" style="font-size:0.68rem;font-family:monospace;background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;margin-top:4px;word-break:break-all;cursor:pointer;">Inapakia...</div>
+                    <div id="profile-user-id-text" onclick="copyUserId()" style="font-size:0.68rem;font-family:monospace;background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;margin-top:4px;word-break:break-all;cursor:pointer;" title="Bonyeza kunakili">–</div>
                 </div>
             </div>
 
@@ -1467,16 +1467,35 @@ async function signup() {
     if (error) { showToast('⚠️ ' + error.message); return; }
     currentUser = data.user;
 
-    // Create farmer profile row
-    await sb.from('farmers').upsert({
-        user_id: currentUser.id,
+    // Create initial farmer profile row (INSERT only — never existed before)
+    await sb.from('farmers').insert({
+        user_id:    currentUser.id,
         first_name: 'Mkulima',
-        last_name: 'Mpya',
-        email: currentUser.email,
+        last_name:  'Mpya',
+        email:      currentUser.email,
     });
 
     showToast('✅ Akaunti imefunguliwa!');
     await afterLogin();
+}
+
+// ─────────────────────────────────────────────
+//  PRIVACY HELPERS — mask email & phone
+// ─────────────────────────────────────────────
+function maskEmail(email) {
+    if (!email || !email.includes('@')) return email || '';
+    const parts = email.split('@');
+    const name  = parts[0];
+    const domain = parts[1];
+    const visible = name.length > 3 ? name.slice(0, 3) : name.slice(0, 1);
+    return visible + '***@' + domain;
+}
+
+function maskPhone(phone) {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 7) return phone;
+    return phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4);
 }
 
 async function afterLogin() {
@@ -1485,13 +1504,18 @@ async function afterLogin() {
     document.getElementById('main-app').classList.add('active');
     document.getElementById('guest-banner').style.display = 'none';
 
-    // Show User ID immediately in device page and profile hero
-    const userIdEl = document.getElementById('user-id-display');
-    if (userIdEl) userIdEl.textContent = currentUser.id;
-    const profileIdText = document.getElementById('profile-user-id-text');
-    const profileIdWrap = document.getElementById('profile-user-id-wrap');
-    if (profileIdText) profileIdText.textContent = currentUser.id;
-    if (profileIdWrap) profileIdWrap.style.display = 'block';
+    // Set User ID in all places immediately (use requestAnimationFrame so DOM is painted first)
+    function setUserIdEverywhere() {
+        var uid = currentUser.id;
+        var d1 = document.getElementById('user-id-display');
+        var d2 = document.getElementById('profile-user-id-text');
+        var d3 = document.getElementById('profile-user-id-wrap');
+        if (d1) d1.textContent = uid;
+        if (d2) d2.textContent = uid;
+        if (d3) d3.style.display = 'block';
+    }
+    requestAnimationFrame(setUserIdEverywhere);
+    setTimeout(setUserIdEverywhere, 300); // double-ensure after render
 
     // Load profile info
     const { data: farmer } = await sb.from('farmers')
@@ -1501,9 +1525,9 @@ async function afterLogin() {
 
     const displayName = (farmer && farmer.first_name && farmer.first_name !== 'Mkulima')
         ? (farmer.first_name + ' ' + (farmer.last_name || '')).trim()
-        : currentUser.email;
+        : maskEmail(currentUser.email);
     document.getElementById('profile-name').textContent  = displayName;
-    document.getElementById('profile-email').textContent = currentUser.email;
+    document.getElementById('profile-email').textContent = maskEmail(currentUser.email);
     if (farmer && farmer.farm_name) {
         const tag = document.getElementById('profile-farm-tag');
         if (tag) tag.textContent = '\uD83C\uDF3E ' + farmer.farm_name + (farmer.region ? ' \u00B7 ' + farmer.region : '');
@@ -1914,27 +1938,36 @@ async function saveProfileSetup() {
 
     if (!first || !last) { showToast('\u26A0\uFE0F Weka jina kamili kwanza'); return; }
 
-    const { error } = await sb.from('farmers').upsert({
-        user_id:      currentUser.id,
+    const payload = {
         first_name:   first,
         last_name:    last,
-        phone:        phone,
+        phone:        phone || null,
         email:        currentUser.email,
         farm_name:    farmName || null,
         region:       region   || null,
         primary_crop: crop     || null,
-    }, { onConflict: 'user_id' });
+    };
 
-    if (error) { showToast('\u26A0\uFE0F Hitilafu: ' + error.message); return; }
+    // Try UPDATE first (avoids RLS insert policy issues)
+    const { error: upErr } = await sb.from('farmers')
+        .update(payload)
+        .eq('user_id', currentUser.id);
+
+    if (upErr) {
+        // Row may not exist yet — try INSERT
+        const { error: inErr } = await sb.from('farmers')
+            .insert({ user_id: currentUser.id, ...payload });
+        if (inErr) { showToast('\u26A0\uFE0F Hitilafu: ' + inErr.message); return; }
+    }
 
     // Update UI
     document.getElementById('profile-name').textContent = (first + ' ' + last).trim();
-    document.getElementById('profile-email').textContent = currentUser.email;
+    document.getElementById('profile-email').textContent = maskEmail(currentUser.email);
     if (farmName) {
         const tag = document.getElementById('profile-farm-tag');
         if (tag) tag.textContent = '\uD83C\uDF3E ' + farmName + (region ? ' \u00B7 ' + region : '');
     }
-    // Also sync account modal fields
+    // Sync account modal fields
     const fn = document.getElementById('acc-firstname'); if (fn) fn.value = first;
     const ln = document.getElementById('acc-lastname');  if (ln) ln.value = last;
     const ph = document.getElementById('acc-phone');     if (ph) ph.value = phone;
@@ -1999,8 +2032,10 @@ async function prefillAccount() {
     if (!data) return;
     document.getElementById('acc-firstname').value = data.first_name || '';
     document.getElementById('acc-lastname').value  = data.last_name  || '';
+    // Show real phone in editable field (user needs to see/edit their own number)
     document.getElementById('acc-phone').value     = data.phone      || '';
-    document.getElementById('acc-email').value     = currentUser.email;
+    // Show masked email in readonly display field
+    document.getElementById('acc-email').value     = maskEmail(currentUser.email);
 }
 
 async function saveAccount() {
@@ -2010,17 +2045,15 @@ async function saveAccount() {
     const phone = document.getElementById('acc-phone').value.trim();
     if (!first || !last) { showToast('⚠️ Weka jina kamili'); return; }
 
-    const { error } = await sb.from('farmers').upsert({
-        user_id:    currentUser.id,
-        first_name: first,
-        last_name:  last,
-        phone:      phone,
-        email:      currentUser.email,
-    }, { onConflict: 'user_id' });
+    const payload = { first_name: first, last_name: last, phone: phone || null, email: currentUser.email };
 
-    if (error) { showToast('⚠️ Hitilafu: ' + error.message); return; }
+    const { error: upErr } = await sb.from('farmers').update(payload).eq('user_id', currentUser.id);
+    if (upErr) {
+        const { error: inErr } = await sb.from('farmers').insert({ user_id: currentUser.id, ...payload });
+        if (inErr) { showToast('⚠️ Hitilafu: ' + inErr.message); return; }
+    }
 
-    document.getElementById('profile-name').textContent = `${first} ${last}`;
+    document.getElementById('profile-name').textContent = (first + ' ' + last).trim();
     showToast('✅ Akaunti imehifadhiwa!');
     closeModal('modal-account');
 }
@@ -2047,20 +2080,16 @@ async function saveFarm() {
     const size     = parseFloat(document.getElementById('farm-size').value) || null;
     const crop     = document.getElementById('farm-crop').value;
 
-    const { error } = await sb.from('farmers').upsert({
-        user_id:         currentUser.id,
-        farm_name:       farmName,
-        region:          region,
-        district:        district,
-        farm_size_acres: size,
-        primary_crop:    crop,
-    }, { onConflict: 'user_id' });
+    const payload = { farm_name: farmName || null, region: region || null, district: district || null, farm_size_acres: size, primary_crop: crop || null };
 
-    if (error) { showToast('⚠️ Hitilafu: ' + error.message); return; }
+    const { error: upErr } = await sb.from('farmers').update(payload).eq('user_id', currentUser.id);
+    if (upErr) {
+        const { error: inErr } = await sb.from('farmers').insert({ user_id: currentUser.id, email: currentUser.email, ...payload });
+        if (inErr) { showToast('⚠️ Hitilafu: ' + inErr.message); return; }
+    }
 
-    // Update profile tag
     const tag = document.getElementById('profile-farm-tag');
-    if (tag && farmName) tag.textContent = `🌾 ${farmName}${region ? ' · ' + region : ''}`;
+    if (tag && farmName) tag.textContent = '\uD83C\uDF3E ' + farmName + (region ? ' \u00B7 ' + region : '');
     showToast('✅ Shamba limehifadhiwa!');
     closeModal('modal-farm');
 }
