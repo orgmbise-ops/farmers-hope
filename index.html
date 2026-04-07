@@ -10,991 +10,218 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Free AI: Puter.js (no API key needed) -->
     <script src="https://js.puter.com/v2/"></script>
+    <!-- Free Image Recognition: TensorFlow.js + MobileNet (runs in browser) -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest/dist/mobilenet.min.js"></script>
 
     <style>
         :root {
-            --forest: #2e7d32;
-            --forest-light: #4caf50;
-            --forest-dark: #1b5e20;
-            --accent: #ffab00;
-            --bg: #f0f4f0;
-            --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --text-muted: #7f8c8d;
-            --border: #e0e6e0;
-            --shadow: 0 4px 12px rgba(0,0,0,0.05);
-            --safe: #43a047;
-            --warn: #fb8c00;
-            --danger: #e53935;
+            --forest: #1a6b2e; --forest-dark: #0f4a1e; --forest-light: #2d8a45;
+            --leaf: #4caf50; --sun: #f9a825; --danger: #d32f2f; --success: #388e3c;
+            --bg: #f8f5f0; --bg-card: #fff; --text: #1a1a1a; --text-muted: #666;
+            --border: #e0d9d0; --radius: 16px; --shadow: 0 4px 20px rgba(26,107,46,0.12);
         }
+        * { box-sizing: border-box; margin:0; padding:0; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Outfit', sans-serif; }
-        body { margin:0; background: var(--bg); color: var(--text-main); line-height: 1.5; overflow-x: hidden; }
+        /* ── NAV ── */
+        .topnav { position: sticky; top: 0; z-index: 200; background: var(--forest-dark); color: #fff; padding: 0 16px; height: 58px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+        .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.1rem; color: #fff; cursor: pointer; }
+        .nav-logo { width: 34px; height: 34px; background: linear-gradient(135deg, var(--leaf), var(--sun)); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+        .nav-logo-login { width: 90px; height: 90px; font-size: 3rem; margin: 0 auto 20px; border-radius: 20px; }
+        .lang-switch { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-family: 'Outfit',sans-serif; }
 
-        .page { display: none; padding-bottom: 90px; min-height: 100vh; animation: fadeIn 0.3s ease; }
+        /* ── PAGES ── */
+        .page { display: none; }
         .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .main { padding-bottom: 80px; }
 
-        /* Navigation */
-        .top-nav { position: sticky; top: 0; z-index: 100; background: var(--forest); color: white; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .nav-logo { font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; }
-        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        /* ── CARDS / BUTTONS ── */
+        .card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+        .cp { padding: 16px; }
+        .btn { border: none; font-family: 'Outfit', sans-serif; font-weight: 700; padding: 14px 20px; border-radius: 12px; cursor: pointer; width: 100%; font-size: 1rem; transition: .15s; }
+        .btn-green { background: var(--forest); color: #fff; }
+        .btn-green:hover { background: var(--forest-light); }
+        .btn-outline { background: transparent; border: 2px solid var(--forest); color: var(--forest); }
+        .btn-outline:hover { background: #e8f5e9; }
+        .section-header { font-size: 1.05rem; font-weight: 700; padding: 14px 16px 0; color: var(--forest-dark); display: flex; align-items: center; gap: 8px; }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); z-index: 1000; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; transition: 0.2s; flex: 1; }
-        .nav-item i { font-size: 1.4rem; margin-bottom: 2px; }
-        .nav-item.active { color: var(--forest); }
+        /* ── QUICK FUNCTION ICONS (Home) ── */
+        .fn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 12px; }
+        .fn-card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 10px; text-align: center; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+        .fn-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,107,46,0.18); }
+        .fn-card:active { transform: scale(.97); }
+        .fn-icon { font-size: 2rem; margin-bottom: 8px; }
+        .fn-icon i { font-size: 2rem; color: var(--forest); }
+        .fn-label { font-size: 0.75rem; font-weight: 700; color: var(--forest-dark); }
 
-        /* Cards & UI Elements */
-        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: var(--shadow); border: 1px solid var(--border); position: relative; overflow: hidden; }
-        .cp { padding: 22px; }
-        .btn { width: 100%; border: none; border-radius: 12px; padding: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-green { background: var(--forest); color: white; }
-        .btn-green:active { background: var(--forest-dark); transform: scale(0.98); }
-        .btn-outline { background: white; border: 2px solid var(--forest); color: var(--forest); }
+        /* ── SENSOR GRID ── */
+        .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
+        .scard { padding: 16px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
+        .scard-icon { font-size: 1.5rem; }
+        .scard-icon i { font-size: 1.5rem; color: var(--forest-light); }
+        .scard-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-top: 6px; }
+        .scard-val { font-size: 1.9rem; font-weight: 800; margin: 6px 0 2px; color: var(--forest-dark); }
+        .scard-unit { font-size: 0.78rem; color: var(--text-muted); }
+        .scard.warn .scard-val { color: var(--danger); }
+        .scard.ok   .scard-val { color: var(--success); }
+
+        /* ── MARKETPLACE ── */
+        .market-item { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--border); gap: 10px; }
+        .market-item:last-child { border-bottom: none; }
+        .mi-icon { font-size: 1.6rem; flex-shrink: 0; }
+        .mi-name { font-weight: 600; font-size: 0.95rem; }
+        .mi-sub  { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .price { font-weight: 800; color: var(--forest); font-size: 1rem; }
+        .trend-up   { color: var(--success); font-size: 0.78rem; }
+        .trend-down { color: var(--danger);  font-size: 0.78rem; }
+
+        /* ── MARKET TABS ── */
+        .mkt-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 10px 12px; scrollbar-width: none; }
+        .mkt-tabs::-webkit-scrollbar { display: none; }
+        .mkt-tab { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; border: 2px solid var(--border); background: var(--bg-card); font-family:'Outfit',sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; color: var(--text-muted); transition: .15s; white-space: nowrap; }
+        .mkt-tab.active { background: var(--forest); border-color: var(--forest); color: #fff; }
+
+        /* ── EXTERNAL PLATFORM LINKS ── */
+        .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 12px; }
+        .platform-card { border-radius: 14px; padding: 14px 12px; text-align: center; cursor: pointer; text-decoration: none; display: block; transition: transform .15s, box-shadow .15s; box-shadow: var(--shadow); }
+        .platform-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .platform-card:active { transform: scale(.97); }
+        .platform-card .pc-icon { font-size: 2rem; margin-bottom: 6px; }
+        .platform-card .pc-name { font-weight: 800; font-size: 0.85rem; }
+        .platform-card .pc-sub  { font-size: 0.72rem; opacity: .85; margin-top: 3px; }
+        .pc-jiji     { background: linear-gradient(135deg,#e65c00,#f9d423); color:#fff; }
+        .pc-facebook { background: linear-gradient(135deg,#1877f2,#0d5bbf); color:#fff; }
+        .pc-google   { background: linear-gradient(135deg,#4285f4,#34a853); color:#fff; }
+        .pc-instagram{ background: linear-gradient(135deg,#e1306c,#f56040,#ffdc80); color:#fff; }
+        .pc-maps     { background: linear-gradient(135deg,#0f9d58,#137333); color:#fff; }
+        .pc-whatsapp { background: linear-gradient(135deg,#25d366,#128c7e); color:#fff; }
+
+        /* ── VERIFIED SELLERS ── */
+        .seller-card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 12px 12px; overflow: hidden; }
+        .seller-header { display: flex; align-items: center; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); }
+        .seller-avatar { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink:0; }
+        .seller-name   { font-weight: 700; font-size: 0.95rem; }
+        .seller-loc    { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        .seller-tags   { display: flex; flex-wrap: wrap; gap: 5px; padding: 10px 14px; }
+        .seller-tag    { background: #e8f5e9; color: var(--forest-dark); font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+        .seller-actions { display: flex; gap: 0; border-top: 1px solid var(--border); }
+        .seller-btn    { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 8px; background: none; border: none; font-family:'Outfit',sans-serif; font-weight: 700; font-size: 0.8rem; cursor: pointer; border-right: 1px solid var(--border); color: var(--forest); transition: background .15s; text-decoration: none; }
+        .seller-btn:last-child { border-right: none; }
+        .seller-btn:hover { background: #e8f5e9; }
+        .seller-btn.call  { color: #1976d2; }
+        .seller-btn.wa    { color: #25d366; }
+        .verified-badge   { margin-left: auto; background: #e8f5e9; color: var(--success); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+
+        /* ── AG DOCTOR ── */
+        .agdoc-card { background: linear-gradient(135deg,#1a6b2e,#2d8a45); color:#fff; border-radius: var(--radius); margin: 0 12px 12px; padding: 18px; box-shadow: var(--shadow); }
+        .agdoc-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+        .agdoc-card p  { font-size: 0.85rem; opacity:.9; margin-bottom: 14px; line-height:1.5; }
+        .agdoc-list    { display: flex; flex-direction: column; gap: 10px; }
+        .agdoc-row     { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; }
+        .agdoc-avatar  { width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink:0; }
+        .agdoc-name    { font-weight: 700; font-size: 0.88rem; }
+        .agdoc-spec    { font-size: 0.73rem; opacity:.8; margin-top: 2px; }
+        .agdoc-btn     { margin-left: auto; background: #25d366; border: none; color: #fff; padding: 8px 14px; border-radius: 20px; font-family:'Outfit',sans-serif; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 5px; flex-shrink:0; }
+
+        /* ── CLASSIFIEDS ── */
+        .classified-card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 12px 12px; overflow: hidden; }
+        .classified-img  { width: 100%; height: 130px; object-fit: cover; display: block; }
+        .classified-img-placeholder { width:100%; height:100px; display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);font-size:2.5rem; }
+        .classified-body { padding: 12px 14px; }
+        .classified-title{ font-weight: 700; font-size: 0.95rem; }
+        .classified-price{ color: var(--forest); font-weight: 800; font-size: 1.1rem; margin: 4px 0; }
+        .classified-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 10px; flex-wrap:wrap; margin-bottom:10px; }
+        .classified-actions { display:flex; gap:8px; }
+        .cla-btn { flex:1; padding: 9px; border-radius: 10px; border: none; font-family:'Outfit',sans-serif; font-weight:700; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; }
+        .cla-btn-wa   { background:#25d366; color:#fff; }
+        .cla-btn-call { background:#e3f2fd; color:#1976d2; }
+        .compose-classified { background:var(--bg-card); border-radius:var(--radius); box-shadow:var(--shadow); margin:0 12px 12px; padding:16px; }
+        .compose-classified h4 { font-size:0.95rem; font-weight:700; color:var(--forest-dark); margin-bottom:12px; display:flex;align-items:center;gap:6px; }
+        .cc-input { width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:10px; font-family:'Outfit',sans-serif; font-size:0.9rem; outline:none; margin-bottom:8px; }
+        .cc-input:focus { border-color:var(--forest); }
+        .cc-row { display:flex; gap:8px; }
+        .cc-post { background:var(--forest); color:#fff; border:none; border-radius:10px; padding:11px 20px; font-family:'Outfit',sans-serif; font-weight:700; font-size:0.9rem; cursor:pointer; }
+
+        /* ── AI ── */
+        #page-ai { display: none; flex-direction: column; }
+        #page-ai.active { display: flex; height: calc(100vh - 120px); }
+        .ai-bubble-wrap { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .ai-bubble { padding: 12px 16px; border-radius: 16px; max-width: 88%; font-size: 0.93rem; line-height: 1.55; }
+        .ai-bubble.user { background: var(--forest); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ai-bubble.bot  { background: #fff; color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
+        .ai-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: #fff; flex-shrink: 0; }
+        .ai-input { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 0.93rem; outline: none; }
+        .ai-input:focus { border-color: var(--forest); }
+        .ai-send { padding: 12px 16px; background: var(--forest); color: #fff; border: none; border-radius: 10px; cursor: pointer; font-size: 1.1rem; }
+        .api-key-bar { background: #fff8e1; border-bottom: 1px solid #ffe082; padding: 10px 14px; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+        .api-key-input { flex: 1; padding: 8px 12px; border: 1px solid #ffe082; border-radius: 8px; font-size: 0.82rem; font-family: monospace; outline: none; }
+        .api-key-save { background: var(--sun); border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 0.82rem; white-space: nowrap; }
+
+        /* ── DISEASE ── */
+        .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 48px 20px; text-align: center; cursor: pointer; background: var(--bg-card); transition: .2s; }
+        .upload-zone:hover, .upload-zone.drag { border-color: var(--forest); background: #f0faf2; }
+        .upload-zone .uz-icon { font-size: 2.8rem; }
+        .upload-zone p { color: var(--text-muted); margin-top: 10px; font-size: 0.93rem; }
+        .disease-result { display: none; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-top: 14px; }
+        .disease-result.show { display: block; }
+        .dr-badge { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; }
+        .dr-badge.healthy  { background: #e8f5e9; color: var(--success); }
+        .dr-badge.infected { background: #ffebee; color: var(--danger); }
+
+        /* ── HOME HERO ── */
+        .hero { background: linear-gradient(135deg, var(--forest-dark), var(--forest-light)); color: #fff; padding: 26px 20px 28px; border-radius: 0 0 28px 28px; margin-bottom: 16px; }
+        .hero h2 { font-size: 1.4rem; font-weight: 800; }
+        .hero p  { opacity: .85; margin-top: 6px; font-size: 0.93rem; }
+        .quick-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+        .qs { background: rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; }
+        .qs-val   { font-size: 1.35rem; font-weight: 800; }
+        .qs-label { font-size: 0.72rem; opacity: .8; margin-top: 2px; }
+
+        /* ── PUMP ── */
+        .pump-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; }
+        .pump-label { font-weight: 700; font-size: 0.98rem; }
+        .pump-sub   { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+        .toggle { width: 52px; height: 28px; background: #ccc; border-radius: 14px; border: none; cursor: pointer; position: relative; transition: background .3s; flex-shrink: 0; }
+        .toggle::after { content: ''; position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: left .3s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+        .toggle.on { background: var(--leaf); }
+        .toggle.on::after { left: 27px; }
+
+        /* ── NEWS ── */
+        .news-item  { padding: 13px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+        .news-item:last-child { border-bottom: none; }
+        .news-dot   { width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); flex-shrink: 0; margin-top: 6px; }
+        .news-title { font-weight: 600; font-size: 0.92rem; }
+        .news-meta  { font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; }
+
+        /* ── COMMUNITY ── */
+        .post-card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 12px 14px; overflow: hidden; }
+        .post-header { display: flex; align-items: center; gap: 12px; padding: 14px 14px 10px; }
+        .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--leaf), var(--sun)); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+        .post-name { font-weight: 700; font-size: 0.92rem; }
+        .post-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+        .post-body  { padding: 0 14px 12px; font-size: 0.9rem; line-height: 1.55; color: var(--text); }
+        .post-actions { display: flex; gap: 0; border-top: 1px solid var(--border); }
+        .post-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; background: none; border: none; font-size: 0.82rem; color: var(--text-muted); cursor: pointer; font-family: 'Outfit',sans-serif; transition: color .15s; border-right: 1px solid var(--border); }
+        .post-action:last-child { border-right: none; }
+        .post-action:hover { color: var(--forest); }
+        .post-action i { font-size: 1rem; }
+        .compose-bar { display: flex; gap: 10px; padding: 12px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 12px 12px; align-items: center; }
+        .compose-input { flex: 1; padding: 11px 14px; border: 1px solid var(--border); border-radius: 20px; font-family: 'Outfit',sans-serif; font-size: 0.9rem; outline: none; background: var(--bg); }
+        .compose-send { background: var(--forest); color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
+
+        /* ── PROFILE ── */
+        .profile-hero { background: linear-gradient(135deg, var(--forest-dark), var(--forest-light)); color: #fff; text-align: center; padding: 32px 20px 28px; }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 3px solid rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 14px; }
+        .profile-name   { font-size: 1.3rem; font-weight: 800; }
+        .profile-email  { font-size: 0.85rem; opacity: .8; margin-top: 4px; }
+        .profile-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .profile-row:last-child { border-bottom: none; }
+        .profile-row i { font-size: 1.2rem; color: var(--forest); width: 24px; 
         
-        /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        .stat-card { background: white; border-radius: 18px; padding: 15px; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--border); }
-        .stat-val { font-size: 1.5rem; font-weight: 800; color: var(--forest-dark); margin: 5px 0; }
-        .stat-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-        .stat-icon { font-size: 1.4rem; padding: 8px; border-radius: 12px; margin-bottom: 5px; }
-
-        /* Community & Marketplace */
-        .post-card { background: white; border-radius: 15px; margin-bottom: 15px; border: 1px solid var(--border); overflow: hidden; }
-        .post-header { padding: 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #f5f5f5; }
-        .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-        .post-name { font-weight: 700; font-size: 0.95rem; color: var(--text-main); }
-        .post-time { font-size: 0.75rem; color: var(--text-muted); }
-        .post-body { padding: 15px; font-size: 0.95rem; }
-        .post-actions { padding: 10px 15px; display: flex; gap: 20px; border-top: 1px solid #f5f5f5; background: #fafafa; }
-        .post-action { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; }
-
-        /* Profile Elements */
-        .profile-header { text-align: center; padding: 30px 0 20px; background: linear-gradient(to bottom, var(--forest), var(--forest-dark)); color: white; border-radius: 0 0 30px 30px; margin-bottom: 25px; }
-        .avatar-main { width: 100px; height: 100px; border-radius: 50%; background: white; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 4px solid rgba(255,255,255,0.3); position: relative; overflow: hidden; }
-        .avatar-edit { position: absolute; bottom: 0; right: 0; background: var(--accent); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 3px solid white; cursor: pointer; }
-
-        /* Toast */
-        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; z-index: 10000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        #toast.show { display: block; animation: fadeInUp 0.3s ease; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
-
-        /* Modal */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 20px; width: 100%; max-width: 450px; overflow: hidden; animation: zoomIn 0.3s ease; }
-        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-    </style>
-</head>
-<body>
-
-<div id="login-screen" class="page active">
-    <div style="padding-top:90px; text-align:center; max-width:420px; margin:0 auto; padding-left:20px; padding-right:20px;">
-        <div class="nav-logo nav-logo-login" style="justify-content:center; font-size:3rem; margin-bottom:10px;">🌱</div>
-        <h1 id="login-title" style="font-size:2rem;font-weight:800;color:var(--forest-dark)">Shamba Smart</h1>
-        <p id="login-subtitle" style="color:var(--text-muted);margin:10px 0 25px;font-size:0.95rem;">Kilimo cha kisasa kwa teknolojia ya AI</p>
-
-        <div class="card cp">
-            <div id="continue-session-ui" style="display:none; padding: 10px 0;">
-                <p style="font-weight:700; color:var(--forest-dark); margin-bottom:14px;">Karibu tena!</p>
-                <button id="btn-continue" onclick="continueSession()" class="btn btn-green" style="margin-bottom:12px;">
-                    Endelea
-                </button>
-                <button onclick="switchAccount()" class="btn btn-outline" style="font-size:0.85rem;">
-                    Badilisha Akaunti
-                </button>
-            </div>
-
-            <div id="login-form-ui">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:10px;">
-                    <i class="bi bi-envelope-fill" style="color:var(--forest);font-size:1.1rem;"></i>
-                    <input id="email" type="email" placeholder="Barua pepe" style="width:100%;border:none;background:transparent;font-size:1rem;outline:none;">
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:10px;">
-                    <i class="bi bi-lock-fill" style="color:var(--forest);font-size:1.1rem;"></i>
-                    <input id="password" type="password" placeholder="Nenosiri" style="width:100%;border:none;background:transparent;font-size:1rem;outline:none;">
-                </div>
-                <button onclick="login()" class="btn btn-green">
-                    <i class="bi bi-box-arrow-in-right"></i> Ingia
-                </button>
-                <button onclick="signup()" class="btn btn-outline" style="margin-top:10px;">
-                    <i class="bi bi-person-plus-fill"></i> Fungua Akaunti Mpya
-                </button>
-                <button onclick="startGuestMode()" class="btn btn-outline" style="margin-top:8px;border-color:#ccc;color:#888;">
-                    <i class="bi bi-person-fill"></i> Jaribu kama Mgeni (Demo)
-                </button>
-            </div>
-        </div>
-
-        <div style="margin-top:20px;">
-            <button onclick="toggleLang()" style="background:none; border:none; color:var(--forest); font-weight:600; cursor:pointer; font-size:0.9rem;">
-                🇺🇸 Switch to English
-            </button>
-        </div>
-        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:40px;">&copy; 2026 Shamba Smart Tanzania</p>
-    </div>
-</div>
-
-<div id="main-app" class="page">
-    
-    <div class="top-nav">
-        <div class="nav-logo">🌱 Shamba Smart</div>
-        <div class="nav-actions">
-            <i class="bi bi-bell-fill" style="font-size:1.2rem; cursor:pointer;"></i>
-            <div onclick="showPage('profile')" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; cursor:pointer;">
-                <span id="top-nav-avatar">👨‍🌾</span>
-            </div>
-        </div>
-    </div>
-
-    <div id="guest-banner" style="background:var(--accent); color:white; padding:8px; text-align:center; font-size:0.8rem; font-weight:700; display:none;">
-        MODI YA GUEST: Ingia ili kuhifadhi data zako na kutumia AI.
-    </div>
-
-    <div id="home-page" class="page-content container active">
-        <div class="card" style="background: linear-gradient(135deg, var(--forest), var(--forest-dark)); color:white; border:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <h3 style="margin:0; font-size:1.2rem;">Hali ya Shamba</h3>
-                    <p id="monitor-status" style="margin:5px 0 0; font-size:0.85rem; opacity:0.9;">Inapakia data...</p>
-                </div>
-                <div style="font-size:2.5rem; opacity:0.3;"><i class="bi bi-cloud-sun-fill"></i></div>
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon" style="background:#e3f2fd; color:#1e88e5;"><i class="bi bi-droplet-fill"></i></div>
-                <div class="stat-label">Unyevu Udongo</div>
-                <div class="stat-val"><span id="moist-val">--</span>%</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background:#fff3e0; color:#fb8c00;"><i class="bi bi-thermometer-half"></i></div>
-                <div class="stat-label">Joto</div>
-                <div class="stat-val"><span id="temp-val">--</span>°C</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background:#f1f8e9; color:#7cb342;"><i class="bi bi-flower1"></i></div>
-                <div class="stat-label">Nitrojeni (N)</div>
-                <div class="stat-val"><span id="n-val">--</span></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background:#ede7f6; color:#5e35b1;"><i class="bi bi-lightning-fill"></i></div>
-                <div class="stat-label">Umeme Udongo</div>
-                <div class="stat-val"><span id="ec-val">--</span></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h4 style="margin:0;"><i class="bi bi-graph-up"></i> Mwenendo wa Masaa 24</h4>
-                <select id="chart-type" onchange="updateChart()" style="border:none; background:var(--bg); border-radius:8px; padding:5px 10px; font-size:0.8rem; font-weight:600;">
-                    <option value="moisture">Unyevu</option>
-                    <option value="temperature">Joto</option>
-                </select>
-            </div>
-            <div style="height:200px; width:100%;"><canvas id="sensorChart"></canvas></div>
-        </div>
-
-        <div class="card" style="display:flex; align-items:center; justify-content:space-between; border-left:5px solid var(--forest);">
-            <div>
-                <h4 style="margin:0;">Pampu ya Maji</h4>
-                <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);" id="pump-text">Imezimwa</p>
-            </div>
-            <div onclick="togglePump()" id="pump-btn" style="width:60px; height:32px; background:#ddd; border-radius:30px; position:relative; cursor:pointer; transition:0.3s;">
-                <div style="width:26px; height:26px; background:white; border-radius:50%; position:absolute; top:3px; left:3px; transition:0.3s; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="ai-page" class="page-content container" style="display:none;">
-        <h3 style="margin-top:0;"><i class="bi bi-robot"></i> Shamba AI Advisor</h3>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">Tumia AI kupata ushauri wa kitaalamu na kugundua magonjwa ya mimea.</p>
-        
-        <div class="card" style="border-top:5px solid var(--forest);">
-            <h4 style="margin:0 0 10px 0;">Uliza Shamba AI</h4>
-            <div style="display:flex; gap:10px;">
-                <input id="ai-input" type="text" placeholder="Mf: Nipande nini msimu huu?" style="flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); outline:none;">
-                <button onclick="askAI()" style="background:var(--forest); color:white; border:none; padding:10px 15px; border-radius:10px; cursor:pointer;"><i class="bi bi-send-fill"></i></button>
-            </div>
-            <div id="ai-response" style="margin-top:15px; font-size:0.9rem; min-height:50px; border-left:3px solid var(--border); padding-left:12px; display:none;"></div>
-        </div>
-
-        <div class="card" style="border-top:5px solid var(--accent);">
-            <h4 style="margin:0 0 5px 0;">Utambuzi wa Magonjwa</h4>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Piga picha jani la mmea ili AI itambue tatizo.</p>
-            <button onclick="document.getElementById('ai-cam').click()" class="btn btn-outline">
-                <i class="bi bi-camera-fill"></i> Piga Picha / Chagua
-            </button>
-            <input type="file" id="ai-cam" accept="image/*" style="display:none;" onchange="analyzeLeaf(event)">
-            <div id="ai-leaf-result" style="margin-top:15px; display:none;">
-                <img id="leaf-preview" style="width:100%; border-radius:12px; margin-bottom:10px;">
-                <div id="leaf-text" style="padding:12px; background:var(--bg); border-radius:10px; font-size:0.9rem;"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="market-page" class="page-content container" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0;"><i class="bi bi-shop"></i> Soko la Shamba</h3>
-            <button class="btn btn-green" style="width:auto; padding:8px 15px; font-size:0.8rem;">
-                <i class="bi bi-plus-circle"></i> Uza Kitu
-            </button>
-        </div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:20px; overflow-x:auto; padding-bottom:5px;">
-            <span style="background:var(--forest); color:white; padding:6px 15px; border-radius:20px; font-size:0.8rem; font-weight:700; white-space:nowrap;">Zote</span>
-            <span style="background:white; color:var(--text-muted); padding:6px 15px; border-radius:20px; font-size:0.8rem; font-weight:700; white-space:nowrap; border:1px solid var(--border);">Mbegu</span>
-            <span style="background:white; color:var(--text-muted); padding:6px 15px; border-radius:20px; font-size:0.8rem; font-weight:700; white-space:nowrap; border:1px solid var(--border);">Mbolea</span>
-            <span style="background:white; color:var(--text-muted); padding:6px 15px; border-radius:20px; font-size:0.8rem; font-weight:700; white-space:nowrap; border:1px solid var(--border);">Vifaa</span>
-        </div>
-
-        <div id="market-feed" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            </div>
-    </div>
-
-    <div id="community-page" class="page-content container" style="display:none;">
-        <h3 style="margin-top:0;"><i class="bi bi-people-fill"></i> Ukumbi wa Wakulima</h3>
-        
-        <div class="card" style="padding:12px; margin-bottom:20px;">
-            <div style="display:flex; gap:12px; align-items:center;">
-                <div id="chat-avatar-mini" style="width:36px; height:36px; border-radius:50%; background:var(--bg); display:flex; align-items:center; justify-content:center;">👨‍🌾</div>
-                <input id="post-input" type="text" placeholder="Una habari gani mpya?" style="flex:1; background:var(--bg); border:none; padding:12px; border-radius:25px; outline:none; font-size:0.9rem;">
-                <button onclick="createPost()" style="background:var(--forest); color:white; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer;"><i class="bi bi-send-fill"></i></button>
-            </div>
-        </div>
-
-        <div id="community-feed">
-            </div>
-    </div>
-
-    <div id="profile-page" class="page-content" style="display:none;">
-        <div class="profile-header">
-            <div class="avatar-main">
-                <span id="profile-avatar-icon">👨‍🌾</span>
-                <div class="avatar-edit" onclick="editAvatar()">
-                    <i class="bi bi-pencil-fill"></i>
-                </div>
-            </div>
-            <h2 id="profile-name" style="margin:0;">Mgeni / Guest</h2>
-            <p id="profile-email" style="margin:5px 0 0; opacity:0.8; font-size:0.9rem;">Demo Mode</p>
-            <div id="profile-farm-tag" style="display:inline-block; background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:20px; margin-top:10px; font-size:0.8rem; font-weight:600;"></div>
-        </div>
-
-        <div class="container">
-            <div id="profile-user-id-wrap" class="card" style="display:none; text-align:center; padding:10px; border-style:dashed;">
-                <small style="color:var(--text-muted);">USER ID: <span id="profile-user-id-text">...</span></small>
-            </div>
-
-            <div class="card" style="padding:0;">
-                <div onclick="openProfileSetup()" style="padding:15px; display:flex; align-items:center; gap:15px; border-bottom:1px solid var(--border); cursor:pointer;">
-                    <i class="bi bi-person-gear" style="font-size:1.3rem; color:var(--forest);"></i>
-                    <div style="flex:1; font-weight:600;">Hariri Taarifa Binafsi</div>
-                    <i class="bi bi-chevron-right" style="color:#ccc;"></i>
-                </div>
-                <div onclick="showToast('Hivi karibuni: Mipangilio ya Vifaa')" style="padding:15px; display:flex; align-items:center; gap:15px; border-bottom:1px solid var(--border); cursor:pointer;">
-                    <i class="bi bi-cpu" style="font-size:1.3rem; color:var(--forest);"></i>
-                    <div style="flex:1; font-weight:600;">Vifaa Vyangu (Hardware)</div>
-                    <i class="bi bi-chevron-right" style="color:#ccc;"></i>
-                </div>
-                <div onclick="showToast('Hivi karibuni: Historia ya Mavuno')" style="padding:15px; display:flex; align-items:center; gap:15px; border-bottom:1px solid var(--border); cursor:pointer;">
-                    <i class="bi bi-calendar-check" style="font-size:1.3rem; color:var(--forest);"></i>
-                    <div style="flex:1; font-weight:600;">Historia ya Shamba</div>
-                    <i class="bi bi-chevron-right" style="color:#ccc;"></i>
-                </div>
-                <div onclick="logout()" style="padding:15px; display:flex; align-items:center; gap:15px; color:var(--danger); cursor:pointer;">
-                    <i class="bi bi-box-arrow-left" style="font-size:1.3rem;"></i>
-                    <div style="flex:1; font-weight:700;">Toka (Logout)</div>
-                </div>
-            </div>
-            
-            <p style="text-align:center; color:var(--text-muted); font-size:0.8rem;">Shamba Smart v1.5 Build 2026.04</p>
-        </div>
-    </div>
-
-    <div class="bottom-nav">
-        <a href="javascript:void(0)" class="nav-item active" onclick="showPage('home')" id="nav-home">
-            <i class="bi bi-speedometer2"></i> Monitor
-        </a>
-        <a href="javascript:void(0)" class="nav-item" onclick="showPage('ai')" id="nav-ai">
-            <i class="bi bi-robot"></i> AI Advisor
-        </a>
-        <a href="javascript:void(0)" class="nav-item" onclick="showPage('market')" id="nav-market">
-            <i class="bi bi-shop"></i> Soko
-        </a>
-        <a href="javascript:void(0)" class="nav-item" onclick="showPage('community')" id="nav-community">
-            <i class="bi bi-people"></i> Ukumbi
-        </a>
-    </div>
-
-</div>
-
-<div id="profile-modal" class="modal">
-    <div class="modal-content">
-        <div style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-            <h4 style="margin:0;">Taarifa za Mkulima</h4>
-            <i class="bi bi-x-lg" onclick="closeModal('profile-modal')" style="cursor:pointer;"></i>
-        </div>
-        <div style="padding:20px;">
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Jina la Kwanza</label>
-                    <input id="setup-fname" type="text" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); margin-top:5px; outline:none;">
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Jina la Pili</label>
-                    <input id="setup-lname" type="text" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); margin-top:5px; outline:none;">
-                </div>
-            </div>
-            <div style="margin-bottom:15px;">
-                <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Jina la Shamba</label>
-                <input id="setup-farm" type="text" placeholder="Mf: Kilimanjaro Farm" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); margin-top:5px; outline:none;">
-            </div>
-            <div style="margin-bottom:20px;">
-                <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Mkoa</label>
-                <select id="setup-region" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); margin-top:5px; outline:none;">
-                    <option value="">Chagua Mkoa</option>
-                    <option value="Arusha">Arusha</option>
-                    <option value="Dar es Salaam">Dar es Salaam</option>
-                    <option value="Dodoma">Dodoma</option>
-                    <option value="Iringa">Iringa</option>
-                    <option value="Kilimanjaro">Kilimanjaro</option>
-                    <option value="Mbeya">Mbeya</option>
-                    <option value="Morogoro">Morogoro</option>
-                    <option value="Mwanza">Mwanza</option>
-                    <option value="Tanga">Tanga</option>
-                    <option value="Zanzibar">Zanzibar</option>
-                </select>
-            </div>
-            <button onclick="saveProfile()" class="btn btn-green">Hifadhi Taarifa</button>
-        </div>
-    </div>
-</div>
-
-<div id="toast"></div>
-
-<script>
-// ─────────────────────────────────────────────
-//  CONFIG & SUPABASE INIT
-// ─────────────────────────────────────────────
-const SUPABASE_URL = 'https://tnyfbeosndasfdrzpxyo.supabase.co';
-const SUPABASE_KEY = 'YOUR_SUPABASE_KEY'; // Replace with actual key
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// State
-let currentUser = null;
-let isGuest = false;
-let currentLang = 'sw';
-let currentPage = 'home';
-let sensorInterval = null;
-let sensorChart = null;
-let currentDeviceId = 'device-001';
-let pumpOn = false;
-let realDataInterval = null;
-
-// Sensor State
-let S = { moist: 42, temp: 24.5, n: 180, ec: 1.2, pump: 0 };
-
-// ─────────────────────────────────────────────
-//  AUTH & SESSION MANAGEMENT (FIXED)
-// ─────────────────────────────────────────────
-let tempSessionUser = null;
-
-// Stop automatic forced login; show "Continue as" UI instead
-sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'SIGNED_IN' && session) {
-        tempSessionUser = session.user;
-        // If we are still on the login page, show the continue UI
-        if (currentPage === 'home' && document.getElementById('login-screen').classList.contains('active')) {
-            showContinueUI(session.user);
-        }
-    } else if (event === 'SIGNED_OUT') {
-        tempSessionUser = null;
-        hideContinueUI();
-    }
-});
-
-// Check session on initial load
-(async function() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user) {
-        tempSessionUser = session.user;
-        showContinueUI(session.user);
-    }
-})();
-
-function showContinueUI(user) {
-    document.getElementById('login-form-ui').style.display = 'none';
-    document.getElementById('continue-session-ui').style.display = 'block';
-    document.getElementById('btn-continue').innerHTML = `<i class="bi bi-person-circle"></i> Endelea kama ${maskEmail(user.email)}`;
-}
-
-function hideContinueUI() {
-    document.getElementById('login-form-ui').style.display = 'block';
-    document.getElementById('continue-session-ui').style.display = 'none';
-}
-
-async function continueSession() {
-    if (tempSessionUser) {
-        currentUser = tempSessionUser;
-        await afterLogin();
-    }
-}
-
-async function switchAccount() {
-    await sb.auth.signOut();
-    hideContinueUI();
-}
-
-function maskEmail(email) {
-    if(!email) return '';
-    const parts = email.split('@');
-    if(parts[0].length <= 3) return email;
-    return parts[0].substring(0,3) + '***@' + parts[1];
-}
-
-async function login() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    if(!email || !pass) return showToast('Tafadhali jaza barua pepe na nenosiri');
-
-    showToast('Inaingia...');
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if(error) return showToast('⚠️ ' + error.message);
-    
-    currentUser = data.user;
-    await afterLogin();
-}
-
-async function signup() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    if(!email || !pass) return showToast('Jaza barua pepe na nenosiri');
-    if(pass.length < 6) return showToast('Nenosiri lazima liwe na herufi 6+');
-
-    showToast('Inatengeneza akaunti...');
-    const { data, error } = await sb.auth.signUp({ email, password: pass });
-    if(error) return showToast('⚠️ ' + error.message);
-    
-    showToast('Akaunti imetengenezwa! Karibu Shamba Smart');
-    currentUser = data.user;
-    await afterLogin();
-}
-
-function startGuestMode() {
-    isGuest = true;
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('main-app').classList.add('active');
-    document.getElementById('guest-banner').style.display = 'block';
-    initApp();
-    showToast('Upo kwenye Guest Mode (Demo)');
-}
-
-async function logout() {
-    clearInterval(sensorInterval);
-    if (realDataInterval) clearInterval(realDataInterval);
-    sensorInterval    = null;
-    realDataInterval  = null;
-    sensorChart       = null;
-    currentUser       = null;
-    isGuest           = false;
-    currentDeviceId   = 'device-001';
-    pumpOn            = false;
-
-    // Completely wipe the session token from Supabase/Local storage
-    await sb.auth.signOut();
-    hideContinueUI(); 
-
-    document.getElementById('main-app').classList.remove('active');
-    document.getElementById('login-screen').classList.add('active');
-    document.getElementById('email').value    = '';
-    document.getElementById('password').value = '';
-
-    // Reset profile UI
-    document.getElementById('profile-name').textContent  = 'Mgeni / Guest';
-    document.getElementById('profile-email').textContent = 'Demo Mode';
-    document.getElementById('profile-avatar-icon').innerHTML = '👨‍🌾';
-    var wrap = document.getElementById('profile-user-id-wrap');
-    if (wrap) wrap.style.display = 'none';
-    var tag = document.getElementById('profile-farm-tag');
-    if (tag) tag.textContent = '';
-
-    showToast('👋 Umetoka. Karibu tena!');
-}
-
-async function afterLogin() {
-    isGuest = false;
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('main-app').classList.add('active');
-    document.getElementById('guest-banner').style.display = 'none';
-
-    // Set User ID globally
-    function setUserIdEverywhere() {
-        if(!currentUser) return;
-        var uid = currentUser.id;
-        var d1 = document.getElementById('user-id-display');
-        var d2 = document.getElementById('profile-user-id-text');
-        var d3 = document.getElementById('profile-user-id-wrap');
-        if (d1) d1.textContent = uid;
-        if (d2) d2.textContent = uid;
-        if (d3) d3.style.display = 'block';
-    }
-    requestAnimationFrame(setUserIdEverywhere);
-
-    // FIX: Pull data STRICTLY from Supabase to ensure profile persistence
-    const { data: farmer } = await sb.from('farmers')
-        .select('*').eq('user_id', currentUser.id).single();
-
-    let hasRealName = false;
-    let displayName = maskEmail(currentUser.email);
-
-    if (farmer) {
-        hasRealName = farmer.first_name && farmer.first_name !== 'Mkulima' && farmer.first_name.trim() !== '';
-        if (hasRealName) {
-            displayName = (farmer.first_name + ' ' + (farmer.last_name || '')).trim();
-        }
-    }
-
-    document.getElementById('profile-name').textContent  = displayName;
-    document.getElementById('profile-email').textContent = maskEmail(currentUser.email);
-    
-    if (farmer && farmer.farm_name) {
-        const tag = document.getElementById('profile-farm-tag');
-        if (tag) tag.textContent = '🌾 ' + farmer.farm_name + (farmer.region ? ' · ' + farmer.region : '');
-    }
-
-    // Load device id
-    const { data: devices } = await sb.from('devices')
-        .select('device_id').eq('user_id', currentUser.id).limit(1);
-    if (devices && devices.length) currentDeviceId = devices[0].device_id;
-
-    updateMonitorBanner();
-    initApp();
-    loadAvatar(); 
-
-    // FIX: Only trigger setup if Supabase literally lacks a real first name (ignoring local storage flags)
-    if (!hasRealName) {
-        setTimeout(function() { openProfileSetup(); }, 1200);
-    }
-}
-
-// ─────────────────────────────────────────────
-//  AVATAR HELPER (FIXED)
-// ─────────────────────────────────────────────
-function getGlobalAvatar() {
-    if (!currentUser) return null;
-    return localStorage.getItem('shambaAvatar_' + currentUser.id);
-}
-
-function loadAvatar() {
-    const saved = getGlobalAvatar();
-    if (saved) applyAvatar(saved);
-}
-
-function applyAvatar(dataUrl) {
-    const icon = document.getElementById('profile-avatar-icon');
-    const mini = document.getElementById('top-nav-avatar');
-    const postMini = document.getElementById('chat-avatar-mini');
-    
-    const html = `<img src="${dataUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-    icon.innerHTML = html;
-    mini.innerHTML = html;
-    if(postMini) postMini.innerHTML = html;
-}
-
-function editAvatar() {
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.onchange = (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (re) => {
-            const dataUrl = re.target.result;
-            if(currentUser) localStorage.setItem('shambaAvatar_' + currentUser.id, dataUrl);
-            applyAvatar(dataUrl);
-            showToast('✅ Picha imehifadhiwa!');
-            if(currentPage === 'community') loadCommunityFromDB();
-        };
-        reader.readAsDataURL(file);
-    };
-    inp.click();
-}
-
-// ─────────────────────────────────────────────
-//  PROFILE SETUP
-// ─────────────────────────────────────────────
-function openProfileSetup() {
-    document.getElementById('profile-modal').classList.add('active');
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
-
-async function saveProfile() {
-    const fn = document.getElementById('setup-fname').value;
-    const ln = document.getElementById('setup-lname').value;
-    const farm = document.getElementById('setup-farm').value;
-    const region = document.getElementById('setup-region').value;
-
-    if(!fn) return showToast('Tafadhali jaza jina lako');
-
-    showToast('Inahifadhi...');
-    
-    const upsertData = {
-        user_id: currentUser.id,
-        first_name: fn,
-        last_name: ln,
-        farm_name: farm,
-        region: region,
-        updated_at: new Date()
-    };
-
-    const { error } = await sb.from('farmers').upsert(upsertData, { onConflict: 'user_id' });
-
-    if(error) return showToast('⚠️ ' + error.message);
-
-    document.getElementById('profile-name').textContent = (fn + ' ' + ln).trim();
-    const tag = document.getElementById('profile-farm-tag');
-    tag.textContent = farm ? '🌾 ' + farm + (region ? ' · ' + region : '') : '';
-    
-    closeModal('profile-modal');
-    showToast('✅ Taarifa zimehifadhiwa!');
-}
-
-// ─────────────────────────────────────────────
-//  COMMUNITY & REPLIES (FIXED)
-// ─────────────────────────────────────────────
-async function loadCommunityFromDB() {
-    if (isGuest || !currentUser) { renderCommunity(); return; }
-    
-    const { data, error } = await sb.from('community_posts')
-        .select('*').order('created_at', { ascending: true }); 
-        
-    if (error || !data) { renderCommunity(); return; }
-
-    const el = document.getElementById('community-feed');
-    if (!el) return;
-
-    const mainPosts = data.filter(p => !p.parent_id).reverse();
-    const replies = data.filter(p => p.parent_id);
-
-    el.innerHTML = mainPosts.map((p, i) => {
-        const postReplies = replies.filter(r => r.parent_id === p.id);
-        const isMe = p.user_id === currentUser.id;
-        
-        // Use Global Avatar for current user
-        const avatarHtml = (isMe && getGlobalAvatar()) 
-            ? `<img src="${getGlobalAvatar()}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` 
-            : `👨‍🌾`;
-
-        return `
-        <div class="post-card">
-            <div class="post-header">
-                <div class="post-avatar" style="overflow:hidden; border:1px solid #eee;">${avatarHtml}</div>
-                <div>
-                    <div class="post-name">${isMe ? 'Wewe' : 'Mkulima'}</div>
-                    <div class="post-time"><i class="bi bi-clock"></i> ${new Date(p.created_at).toLocaleString('sw-TZ', {hour:'2-digit', minute:'2-digit'})}</div>
-                </div>
-            </div>
-            <div class="post-body">${p.content}</div>
-            <div class="post-actions">
-                <button class="post-action" onclick="likePost('${p.id}')">
-                    <i class="bi bi-heart-fill" style="color:#e53935"></i> ${p.likes || 0}
-                </button>
-                <button class="post-action" onclick="replyToPost('${p.id}')">
-                    <i class="bi bi-reply-fill" style="color:#1976d2"></i> Jibu (${postReplies.length})
-                </button>
-            </div>
-            
-            ${postReplies.length > 0 ? `
-            <div style="background:#f9f9f9; padding:10px 14px; border-top:1px solid var(--border);">
-                ${postReplies.map(r => `
-                    <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">
-                        <div style="font-size:1.1rem; opacity:0.7;">💬</div>
-                        <div style="background:#fff; padding:10px; border-radius:12px; border:1px solid var(--border); font-size:0.85rem; flex:1;">
-                            <div style="font-weight:700; margin-bottom:2px; color:var(--forest-dark);">
-                                ${r.user_id === currentUser.id ? 'Wewe' : 'Mkulima'}
-                            </div>
-                            ${r.content}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>` : ''}
-        </div>
-    `}).join('');
-}
-
-async function replyToPost(parentId) {
-    if (isGuest || !currentUser) { 
-        showToast('⚠️ Ingia kwanza ili kujibu'); 
-        return; 
-    }
-    
-    const replyText = prompt("Andika jibu lako:");
-    if (!replyText || !replyText.trim()) return;
-
-    showToast('Inatuma...');
-    const { error } = await sb.from('community_posts').insert({
-        user_id:  currentUser.id,
-        content:  replyText.trim(),
-        parent_id: parentId 
-    });
-    
-    if (error) { 
-        showToast('⚠️ Imeshindwa: ' + error.message); 
-        return; 
-    }
-    
-    showToast('✅ Jibu limetumwa!');
-    await loadCommunityFromDB();
-}
-
-async function createPost() {
-    const input = document.getElementById('post-input');
-    const text = input.value.trim();
-    if(!text) return;
-
-    if(isGuest) return showToast('Modi ya Guest haiwezi kutuma habari');
-
-    showToast('Inatuma...');
-    const { error } = await sb.from('community_posts').insert({
-        user_id: currentUser.id,
-        content: text
-    });
-
-    if(error) return showToast('⚠️ ' + error.message);
-    
-    input.value = '';
-    showToast('✅ Habari imetumwa!');
-    await loadCommunityFromDB();
-}
-
-function renderCommunity() {
-    if(!isGuest) {
-        loadCommunityFromDB();
-    } else {
-        const el = document.getElementById('community-feed');
-        el.innerHTML = `
-            <div class="post-card">
-                <div class="post-header"><div class="post-avatar">👨‍🌾</div><div><div class="post-name">Shamba Smart Team</div><div class="post-time">Sasa hivi</div></div></div>
-                <div class="post-body">Karibu kwenye Ukumbi! Hapa wakulima hushiriki uzoefu. Ingia ili uweze kutuma habari zako.</div>
-            </div>
-        `;
-    }
-}
-
-// ─────────────────────────────────────────────
-//  MONITOR LOGIC
-// ─────────────────────────────────────────────
-function tickSensors() {
-    if (isGuest) {
-        S.moist += (Math.random() - 0.5) * 2;
-        S.temp  += (Math.random() - 0.5) * 0.5;
-        if(S.moist < 10) S.moist = 40;
-        if(S.moist > 90) S.moist = 60;
-        updateSensorUI(S);
-    }
-}
-
-function updateSensorUI(data) {
-    document.getElementById('moist-val').textContent = Math.round(data.moist);
-    document.getElementById('temp-val').textContent  = data.temp.toFixed(1);
-    document.getElementById('n-val').textContent     = data.n || 180;
-    document.getElementById('ec-val').textContent    = data.ec || 1.2;
-
-    const status = document.getElementById('monitor-status');
-    if(data.moist < 30) {
-        status.textContent = 'Tahadhari: Udongo umekauka! ⚠️';
-        status.style.color = '#ffcc80';
-    } else {
-        status.textContent = 'Kila kitu kipo sawa. ✅';
-        status.style.color = 'white';
-    }
-    
-    if(sensorChart) {
-        sensorChart.data.datasets[0].data.push(data.moist);
-        sensorChart.data.datasets[0].data.shift();
-        sensorChart.update('none');
-    }
-}
-
-function updateChart() {
-    const ctx = document.getElementById('sensorChart').getContext('2d');
-    const type = document.getElementById('chart-type').value;
-    
-    if(sensorChart) sensorChart.destroy();
-    
-    sensorChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: Array(10).fill(''),
-            datasets: [{
-                label: type === 'moisture' ? 'Unyevu %' : 'Joto °C',
-                data: Array(10).fill(type === 'moisture' ? 45 : 25),
-                borderColor: '#2e7d32',
-                backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: false }, x: { display: false } }
-        }
-    });
-}
-
-function togglePump() {
-    pumpOn = !pumpOn;
-    const btn = document.getElementById('pump-btn');
-    const dot = btn.querySelector('div');
-    const text = document.getElementById('pump-text');
-    
-    if(pumpOn) {
-        btn.style.background = 'var(--forest)';
-        dot.style.left = '31px';
-        text.textContent = 'Inamwagilia... 💧';
-        text.style.color = 'var(--forest)';
-        showToast('Pampu imewashwa');
-    } else {
-        btn.style.background = '#ddd';
-        dot.style.left = '3px';
-        text.textContent = 'Imezimwa';
-        text.style.color = 'var(--text-muted)';
-        showToast('Pampu imezimwa');
-    }
-}
-
-// ─────────────────────────────────────────────
-//  MARKETPLACE
-// ─────────────────────────────────────────────
-function renderMarketplace() {
-    const items = [
-        { name: 'Mbegu za Nyanya', price: 'TSH 5,000', img: '🍅', loc: 'Arusha' },
-        { name: 'Mbolea ya NPK', price: 'TSH 85,000', img: '📦', loc: 'Mbeya' },
-        { name: 'Pampu ya Maji', price: 'TSH 120,000', img: '🔌', loc: 'Dar' },
-        { name: 'Mbegu za Mahindi', price: 'TSH 12,000', img: '🌽', loc: 'Iringa' }
-    ];
-
-    const feed = document.getElementById('market-feed');
-    feed.innerHTML = items.map(item => `
-        <div class="card" style="padding:10px; margin-bottom:0;">
-            <div style="height:80px; background:var(--bg); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:2rem; margin-bottom:10px;">
-                ${item.img}
-            </div>
-            <div style="font-weight:700; font-size:0.85rem; margin-bottom:2px;">${item.name}</div>
-            <div style="color:var(--forest); font-weight:800; font-size:0.9rem; margin-bottom:5px;">${item.price}</div>
-            <div style="font-size:0.7rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
-                <i class="bi bi-geo-alt"></i> ${item.loc}
-            </div>
-        </div>
-    `).join('');
-}
-
-// ─────────────────────────────────────────────
-//  AI ADVISOR
-// ─────────────────────────────────────────────
-async function askAI() {
-    const inp = document.getElementById('ai-input');
-    const res = document.getElementById('ai-response');
-    const text = inp.value.trim();
-    if(!text) return;
-
-    res.style.display = 'block';
-    res.innerHTML = '<i class="bi bi-hourglass-split"></i> Shamba AI inafikiria...';
-    
-    try {
-        const response = await puter.ai.chat(`Wewe ni mtaalamu wa kilimo Tanzania. Jibu swali hili kwa Kiswahili kifupi na kwa vitendo: ${text}`);
-        res.innerHTML = `<strong>Jibu:</strong><br>${response}`;
-    } catch (e) {
-        res.innerHTML = '⚠️ Samahani, AI imeshindwa kujibu kwa sasa.';
-    }
-}
-
-async function analyzeLeaf(event) {
-    const file = event.target.files[0];
-    if(!file) return;
-
-    const preview = document.getElementById('leaf-preview');
-    const result = document.getElementById('ai-leaf-result');
-    const text = document.getElementById('leaf-text');
-
-    result.style.display = 'block';
-    text.innerHTML = '<i class="bi bi-hourglass-split"></i> Inachambua picha ya jani...';
-
-    const reader = new FileReader();
-    reader.onload = (e) => { preview.src = e.target.result; };
-    reader.readAsDataURL(file);
-
-    setTimeout(() => {
-        text.innerHTML = `
-            <strong style="color:var(--danger)">Tatizo: Early Blight (Ukungu)</strong><br>
-            <p style="margin:5px 0">AI imegundua madoa ya hudhurungi kwenye jani. Huu ni ukungu unaoshambulia nyanya na viazi.</p>
-            <div style="margin-top:10px; font-weight:700;">Hatua za kuchukua:</div>
-            <ul style="margin:5px 0; padding-left:15px;">
-                <li>Ondoa majani yaliyoathirika na uyachome moto.</li>
-                <li>Punguza unyevu mwingi kwenye majani.</li>
-                <li>Tumia dawa ya kuzuia ukungu (Fungicide).</li>
-            </ul>
-        `;
-    }, 2500);
-}
-
-// ─────────────────────────────────────────────
-//  UI UTILS
-// ─────────────────────────────────────────────
-function showPage(pageId) {
-    currentPage = pageId;
-    document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
-    document.getElementById(pageId + '-page').style.display = 'block';
-    
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('nav-' + pageId).classList.add('active');
-
-    if(pageId === 'home' && !sensorChart) updateChart();
-    if(pageId === 'community') renderCommunity();
-    window.scrollTo(0,0);
-}
-
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerHTML = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-function initApp() {
-    updateSensorUI(S);
-    renderMarketplace();
-    renderCommunity();
-    updateChart();
-    sensorInterval = setInterval(tickSensors, 4000);
-    loadAvatar();
-}
-
-function toggleLang() {
-    currentLang = currentLang === 'sw' ? 'en' : 'sw';
-    showToast(currentLang === 'sw' ? 'Lugha: Kiswahili' : 'Language: English');
-    // Basic translation logic can go here
-}
-
-function updateMonitorBanner() {
-    const status = document.getElementById('monitor-status');
-    if(isGuest) status.textContent = 'Modi ya Demo (Guest)';
-    else status.textContent = 'Kifaa kimeunganishwa ✅';
-}
-
 </script>
 </body>
 </html>
+                        
